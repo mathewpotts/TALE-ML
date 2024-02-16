@@ -2,6 +2,7 @@
 
 import ROOT
 import argparse
+import math
 
 def extract_tree_to_csv(input_file, tree_name, output_file, branches):
     # Open the ROOT file
@@ -25,19 +26,26 @@ def extract_tree_to_csv(input_file, tree_name, output_file, branches):
 
     # Loop over the tree entries and extract values
     special_branches = ['mir_ngtube','mir_id','mir_nmir'] # branches that need a index of 0 not iminc
+    i = 0 # event number
     for entry in tree:
         values = []
+        es = True
         iminc = entry.GetLeaf("iminc").GetValue()
         for branch in branches:
             if branch in special_branches:
                 iminc = 0
             if iminc == 0 and branch not in special_branches: # reset iminc to its value when not using special_branches
                 iminc = entry.GetLeaf("iminc").GetValue()
-            print("branch: ", branch, " ,iminc: ", iminc)
+            print("Evt: ", i, "branch: ", branch, " ,iminc: ", iminc)
             value = entry.GetLeaf(branch).GetValue(int(iminc))
+            if math.isnan(value): # if nan value is present break out of loop and don't include event
+                es = False
+                break
             print("value: ", value)
             values.append(str(value))
-        csv_file.write(','.join(values) + '\n')
+        if es: # if branch for loop isn't ended prematurely, write row to csv file
+            csv_file.write(','.join(values) + '\n')
+        i = i + 1 # add to event counter
 
     # Close files and cleanup
     csv_file.close()
